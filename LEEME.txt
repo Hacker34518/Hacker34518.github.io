@@ -1,0 +1,28 @@
+============================================================
+   DUALSENSE REAL MMDEVICE MIC MUTE FIX - V25
+============================================================
+
+¿POR QUÉ EL MICRÓFONO SEGUÍA ESCUCHÁNDOSE EN LA V24?
+----------------------------------------------------
+En las versiones anteriores se utilizaba una comprobación de tipo `hasattr(dev, 'DataFlow')`.
+En la librería PyCAW los objetos `AudioDevice` no contienen esa propiedad, por lo que la función fallaba en silencio y la orden de silenciar los micrófonos NUNCA se enviaba a Windows. El programa mostraba que estaba en "Ganancia 0%", pero Windows jamás recibía la instrucción.
+
+SOLUCIÓN EN LA VERSIÓN V25:
+---------------------------
+Se reemplazó esa comprobación por la llamada nativa de la API COM de Windows:
+`IMMDeviceEnumerator::EnumAudioEndpoints(eCapture=1, DEVICE_STATE_ACTIVE=1)`
+
+Esto se conecta directamente con la API de Audio Core de Windows y realiza tres acciones simultáneas en TODOS los micrófonos conectados (DualSense, webcams, micrófonos integrados de laptop):
+
+1. Activa la casilla de Mute maestro (`SetMute = True`).
+2. Brome la ganancia canal por canal (`SetChannelVolumeLevelScalar = 0.0`) en cada canal individual.
+3. Reduce la ganancia maestra al 0% (`SetMasterVolumeLevelScalar = 0.0`).
+4. Apaga la ganancia del chip del mando DualSense (`Byte 7 = 0x00`) por USB HID.
+
+PASOS:
+------
+1. Ejecuta "Desinstalar_AutoArranque_Y_Cerrar_Proceso.bat" en tu carpeta previa.
+2. Descomprime este ZIP (v25).
+3. Haz doble clic en "Compilar_A_EXE.bat".
+4. Abre "dist/DualSense_Volume_Control.exe".
+5. Con la LUZ NARANJA 🟠 encendida, intenta hablar o grabar: el micrófono quedará 100% mudo.
